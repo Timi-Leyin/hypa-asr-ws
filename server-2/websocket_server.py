@@ -38,7 +38,7 @@ MODEL_PATH          = CT2_MODEL_PATH if USE_CONVERTED_MODEL else HF_MODEL_ID
 HOST                = "0.0.0.0"
 PORT                = 8765
 SAMPLE_RATE         = 16_000
-SILENCE_RMS         = 0.01         # below this → treat as silence
+SILENCE_RMS         = 0.1         # below this → treat as silence
 MIN_AUDIO_SECS      = 0.3           # ignore chunks shorter than this
 MAX_WORKERS         = 10              # reduced - H200 is fast enough
 
@@ -79,18 +79,29 @@ class TranscriptionServer:
         self._use_ct2 = USE_CONVERTED_MODEL
         log.info("Loading model from %s …", MODEL_PATH)
 
-        # Detect GPU availability
+        # Detect GPU availability (CUDA > MPS > CPU)
         import torch
-        self._device = "cuda" if torch.cuda.is_available() else "cpu"
         self._torch = torch
+        
+        if torch.cuda.is_available():
+            self._device = "cuda"
+        elif torch.backends.mps.is_available():
+            self._device = "mps"  # Apple Silicon GPU
+        else:
+            self._device = "cpu"
+        
         log.info("Using device: %s", self._device)
 
         if self._use_ct2:
             from faster_whisper import WhisperModel
+            # faster-whisper doesn't support MPS, fall back to CPU
+            ct2_device = "cuda" if self._device == "cuda" else "cpu"
+            if self._device == "mps":
+                log.warning("faster-whisper doesn't support MPS, using CPU. Set USE_CONVERTED_MODEL=False for Apple GPU.")
             self.model = WhisperModel(
                 CT2_MODEL_PATH,
-                device=self._device,
-                compute_type="int8_float16" if self._device == "cuda" else "int8",
+                device=ct2_device,
+                compute_type="int8_float16" if ct2_device == "cuda" else "int8",
                 cpu_threads=4,
             )
         else:
