@@ -39,13 +39,13 @@ HOST                = "0.0.0.0"
 PORT                = 8765
 SAMPLE_RATE         = 16_000
 SILENCE_RMS         = 0.01         # below this → treat as silence
-MIN_AUDIO_SECS      = 0.5           # ignore chunks shorter than this
-MAX_WORKERS         = 4             # thread pool for blocking inference
+MIN_AUDIO_SECS      = 0.3           # ignore chunks shorter than this
+MAX_WORKERS         = 10              # reduced - H200 is fast enough
 
 # ── Model parameters ───────────────────────────────────────────────────────────
-TEMPERATURE         = 0.5           # 0.0 = greedy/deterministic, higher = more random
-BEAM_SIZE           = 2             # 1 = greedy search, >1 = beam search (slower but can be more accurate)
-REPETITION_PENALTY  = 4.0           # >1.0 penalises repeated tokens (e.g. 1.1)
+TEMPERATURE         = 0.3           # 0.0 = greedy/deterministic (fastest)
+BEAM_SIZE           = 1             # 1 = greedy search (fastest), >1 = beam search
+REPETITION_PENALTY  = 1.0           # 1.0 = disabled (no overhead)
 
 
 # ── Audio decoding ─────────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ class TranscriptionServer:
             self.model = WhisperModel(
                 CT2_MODEL_PATH,
                 device=self._device,
-                compute_type="float16" if self._device == "cuda" else "int8",
+                compute_type="int8_float16" if self._device == "cuda" else "int8",
                 cpu_threads=4,
             )
         else:
@@ -123,12 +123,11 @@ class TranscriptionServer:
             audio,
             language=language,
             beam_size=BEAM_SIZE,
-            best_of=max(BEAM_SIZE, 1),
             temperature=TEMPERATURE,
-            repetition_penalty=REPETITION_PENALTY,
             condition_on_previous_text=False,
             no_speech_threshold=0.6,
-            vad_filter=False,
+            vad_filter=True,              # Skip silent portions
+            vad_parameters=dict(min_silence_duration_ms=250),
         )
         parts = [s.text.strip() for s in segments if s.text.strip()]
         return " ".join(parts) or None

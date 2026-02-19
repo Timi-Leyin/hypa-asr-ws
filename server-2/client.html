@@ -354,7 +354,7 @@
                 let audioBuffer = [];
                 let sendQueue = [];  // { id, data, status }
                 let queueId = 0;
-                const WINDOW_SIZE = 2.0;  // 2 seconds (32000 samples at 16kHz)
+                const WINDOW_SIZE = 1.5;  // 1.5 seconds (24000 samples at 16kHz)
                 const SLIDE_INTERVAL = 0.25;  // Send every 250ms
                 
                 // Circular buffer for sliding window
