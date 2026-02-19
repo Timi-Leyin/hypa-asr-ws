@@ -38,3 +38,26 @@ pip install websockets faster-whisper  # for websocket server
 # 3. Start the WebSocket server
 python websocket_server.py
 ```
+
+## Docker Deployment (GPU)
+
+```sh
+cd server-2
+
+# Build and run with docker-compose (recommended)
+docker compose up -d --build
+
+# Or build and run manually
+docker build -t whisper-websocket .
+docker run -d --gpus all -p 8765:8765 --name whisper-ws whisper-websocket
+
+# View logs
+docker logs -f whisper-websocket
+
+# Stop
+docker compose down
+```
+
+**Requirements:**
+- NVIDIA GPU with CUDA 12.x
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)

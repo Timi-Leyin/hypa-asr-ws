@@ -31,7 +31,7 @@ logging.basicConfig(
 log = logging.getLogger("transcription_server")
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-USE_CONVERTED_MODEL = True          # True → faster-whisper (CT2), False → HuggingFace transformers
+USE_CONVERTED_MODEL = False          # True → faster-whisper (CT2), False → HuggingFace transformers
 CT2_MODEL_PATH      = "./wspr_small_ct2"
 HF_MODEL_ID         = "hypaai/wspr_small_2025-11-11_12-12-17"
 MODEL_PATH          = CT2_MODEL_PATH if USE_CONVERTED_MODEL else HF_MODEL_ID

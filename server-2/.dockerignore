@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+*.mp3
+*.wav
+test_*.py
+compare_*.py
+convert_*.py
+main_*.py
+!websocket_server.py
+
+# HTML clients (not needed in server image)
+*.html
+
+# Other
+.DS_Store
+*.log
