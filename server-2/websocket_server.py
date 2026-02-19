@@ -31,7 +31,7 @@ logging.basicConfig(
 log = logging.getLogger("transcription_server")
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-USE_CONVERTED_MODEL = False          # True → faster-whisper (CT2), False → HuggingFace transformers
+USE_CONVERTED_MODEL = True          # True → faster-whisper (CT2), False → HuggingFace transformers
 CT2_MODEL_PATH      = "./wspr_small_ct2"
 HF_MODEL_ID         = "hypaai/wspr_small_2025-11-11_12-12-17"
 MODEL_PATH          = CT2_MODEL_PATH if USE_CONVERTED_MODEL else HF_MODEL_ID
@@ -79,21 +79,26 @@ class TranscriptionServer:
         self._use_ct2 = USE_CONVERTED_MODEL
         log.info("Loading model from %s …", MODEL_PATH)
 
+        # Detect GPU availability
+        import torch
+        self._device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._torch = torch
+        log.info("Using device: %s", self._device)
+
         if self._use_ct2:
             from faster_whisper import WhisperModel
             self.model = WhisperModel(
                 CT2_MODEL_PATH,
-                device="cpu",
-                compute_type="int8",
+                device=self._device,
+                compute_type="float16" if self._device == "cuda" else "int8",
                 cpu_threads=4,
             )
         else:
-            import torch
             from transformers import WhisperProcessor, WhisperForConditionalGeneration
             self._processor = WhisperProcessor.from_pretrained(HF_MODEL_ID)
             self._hf_model  = WhisperForConditionalGeneration.from_pretrained(HF_MODEL_ID)
+            self._hf_model.to(self._device)
             self._hf_model.eval()
-            self._torch = torch
 
         self._executor = ThreadPoolExecutor(
             max_workers=MAX_WORKERS, thread_name_prefix="whisper",
@@ -132,7 +137,7 @@ class TranscriptionServer:
         inputs = self._processor(
             audio, sampling_rate=SAMPLE_RATE, return_tensors="pt",
         )
-        input_features = inputs.input_features
+        input_features = inputs.input_features.to(self._device)
 
         gen_kwargs = {
             "num_beams":          BEAM_SIZE,
