@@ -1,0 +1,24 @@
+# Optimized real-time transcription dependencies
+
+# Model conversion (required for faster-whisper)
+ctranslate2>=4.0.0
+
+# Core - faster-whisper (5-10x speedup over transformers)
+faster-whisper>=1.0.0
+torch>=2.0.0
+numpy>=1.24.0
+
+# Audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+ffmpeg-python>=0.2.0
+
+# WebSocket server (for websocket_server.py)
+websockets>=12.0
+
+# Real-time streaming (optional - for main_streaming.py)
+pyaudio>=0.2.13  # Microphone input
+webrtcvad>=2.0.10  # Voice Activity Detection
+
+# Note: For CUDA GPU support, install:
+# pip install faster-whisper[cuda]

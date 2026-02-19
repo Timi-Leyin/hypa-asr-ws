@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Caption - WebSocket Client</title>
+    
+    <!-- RecordRTC Library -->
+    <script src="https://cdn.jsdelivr.net/npm/recordrtc@5.4.0/RecordRTC.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .status.disconnected {
+            background: #fee;
+            color: #c00;
+        }
+        
+        .status.connected {
+            background: #efe;
+            color: #0a0;
+        }
+        
+        .status.recording {
+            background: #fef0e0;
+            color: #f80;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-connect {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-start {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-stop {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn-clear {
+            background: #718096;
+            color: white;
+        }
+        
+        .settings {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .settings label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        
+        .settings input, .settings select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+        
+        .transcription-box {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        
+        .transcript-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .transcript-text {
+            color: #2d3748;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+        
+        .transcript-meta {
+            color: #718096;
+            font-size: 0.85em;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-card {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #718096;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #2d3748;
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #a0aec0;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Live Caption</h1>
+        <div class="status disconnected" id="status">Disconnected</div>
+        
+        <div class="settings">
+            <label>WebSocket Server URL:</label>
+            <input type="text" id="serverUrl" value="ws://localhost:8765" placeholder="ws://localhost:8765">
+            
+            <label>Language:</label>
+            <select id="language">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="yo">Yoruba</option>
+            </select>
+        </div>
+        
+        <div class="controls">
+            <button class="btn-connect" id="connectBtn" onclick="toggleConnection()">Connect</button>
+            <button class="btn-start" id="startBtn" onclick="startRecording()" disabled>Start Recording</button>
+            <button class="btn-stop" id="stopBtn" onclick="stopRecording()" disabled>Stop Recording</button>
+            <button class="btn-clear" onclick="clearTranscripts()">Clear</button>
+        </div>
+        
+        <div class="transcription-box" id="transcriptionBox">
+            <div class="empty-state">
+                <p>Connect to server and start recording to see transcriptions here...</p>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Transcripts</div>
+                <div class="stat-value" id="transcriptCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg RTF</div>
+                <div class="stat-value" id="avgRtf">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Duration</div>
+                <div class="stat-value" id="totalDuration">0s</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let recorder = null;
+        let stream = null;
+        let isConnected = false;
+        let isRecording = false;
+        let transcriptCount = 0;
+        let totalRtf = 0;
+        let totalDuration = 0;
+        
+        function updateStatus(status, text) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status ${status}`;
+            statusEl.textContent = text;
+        }
+        
+        function toggleConnection() {
+            if (isConnected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+        
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            updateStatus('connecting', 'Connecting...');
+            
+            ws = new WebSocket(serverUrl);
+            
+            ws.onopen = () => {
+                isConnected = true;
+                updateStatus('connected', 'Connected');
+                document.getElementById('connectBtn').textContent = 'Disconnect';
+                document.getElementById('startBtn').disabled = false;
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'caption') {
+                    // Live caption - replace current line
+                    updateCurrentCaption(data);
+                    
+                    // Mark oldest sent queue item as processed
+                    if (window.sendQueue) {
+                        const sentItem = window.sendQueue.find(q => q.status === 'sent');
+                        if (sentItem) {
+                            sentItem.status = 'done';
+                        }
+                    }
+                }
+            };
+            
+            ws.onerror = (error) => {
+                updateStatus('disconnected', 'Connection Error');
+            };
+            
+            ws.onclose = () => {
+                isConnected = false;
+                updateStatus('disconnected', 'Disconnected');
+                document.getElementById('connectBtn').textContent = 'Connect';
+                document.getElementById('startBtn').disabled = true;
+                if (isRecording) {
+                    stopRecording();
+                }
+            };
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+        
+        async function startRecording() {
+            try {
+                // Request microphone access
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: true
+                });
+                
+                // Use Web Audio API to get raw PCM data (no encoding overhead)
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const source = audioContext.createMediaStreamSource(stream);
+                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                // Queue-based system with sliding window
+                let audioBuffer = [];
+                let sendQueue = [];  // { id, data, status }
+                let queueId = 0;
+                const WINDOW_SIZE = 2.0;  // 2 seconds (32000 samples at 16kHz)
+                const SLIDE_INTERVAL = 0.25;  // Send every 250ms
+                
+                // Circular buffer for sliding window
+                const windowSamples = Math.floor(16000 * WINDOW_SIZE);  // 32000
+                let circularBuffer = new Float32Array(windowSamples);
+                let writePos = 0;
+                let totalSamplesReceived = 0;
+                
+                processor.onaudioprocess = (event) => {
+                    // Get raw PCM data from the audio input
+                    const inputData = event.inputBuffer.getChannelData(0);
+                    
+                    // Add to circular buffer (sliding window)
+                    let remainingInChunk = inputData.length;
+                    let chunkPos = 0;
+                    
+                    while (remainingInChunk > 0) {
+                        const spaceInWindow = windowSamples - writePos;
+                        const toWrite = Math.min(remainingInChunk, spaceInWindow);
+                        
+                        circularBuffer.set(inputData.slice(chunkPos, chunkPos + toWrite), writePos);
+                        
+                        writePos += toWrite;
+                        if (writePos >= windowSamples) {
+                            writePos = 0;  // Wrap around
+                        }
+                        
+                        chunkPos += toWrite;
+                        remainingInChunk -= toWrite;
+                        totalSamplesReceived += toWrite;
+                    }
+                };
+                
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+                
+                // Send sliding window every 250ms
+                const sendInterval = setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN && totalSamplesReceived >= Math.floor(16000 * WINDOW_SIZE)) {
+                        // Get current window (always 2 seconds)
+                        const windowData = new Float32Array(windowSamples);
+                        
+                        // Copy circular buffer in order
+                        if (writePos === 0) {
+                            // No wrap, just copy directly
+                            windowData.set(circularBuffer);
+                        } else {
+                            // Wrap: copy from writePos to end, then from 0 to writePos
+                            windowData.set(circularBuffer.slice(writePos), 0);
+                            windowData.set(circularBuffer.slice(0, writePos), windowSamples - writePos);
+                        }
+                        
+                        // Convert to Int16 PCM
+                        const int16Array = new Int16Array(windowData.length);
+                        for (let i = 0; i < windowData.length; i++) {
+                            int16Array[i] = Math.max(-32768, Math.min(32767, windowData[i] * 0x7FFF));
+                        }
+                        
+                        // Add to queue with unique ID
+                        const itemId = ++queueId;
+                        const timestamp = Date.now();
+                        sendQueue.push({
+                            id: itemId,
+                            data: int16Array.buffer,
+                            samples: int16Array.length,
+                            duration: WINDOW_SIZE,
+                            timestamp: timestamp,
+                            status: 'queued'
+                        });
+                        
+                    }
+                }, SLIDE_INTERVAL * 1000);  // 250ms
+                
+                // Send queue items as fast as they're queued (non-blocking)
+                const senderInterval = setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN && sendQueue.length > 0) {
+                        const item = sendQueue.find(q => q.status === 'queued');
+                        if (item) {
+                            item.status = 'sending';
+                            ws.send(item.data);
+                            item.status = 'sent';
+                        }
+                    }
+                }, 50);  // Send immediately (every 50ms check)
+                
+                isRecording = true;
+                updateStatus('recording', '🔴 Recording...');
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                
+                // Store for stop function
+                window.currentAudioContext = audioContext;
+                window.currentProcessor = processor;
+                window.currentSource = source;
+                window.sendInterval = sendInterval;
+                window.senderInterval = senderInterval;
+                window.sendQueue = sendQueue;  // Make queue accessible
+                
+                // Send language config
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'config',
+                        language: document.getElementById('language').value
+                    }));
+                }
+                
+            } catch (error) {
+                if (error.name === 'NotAllowedError') {
+                    alert('❌ Microphone permission denied');
+                } else if (error.name === 'NotFoundError') {
+                    alert('❌ No microphone found');
+                } else {
+                    alert('❌ Error: ' + error.message);
+                }
+                updateStatus('disconnected', 'Error');
+            }
+        }
+        
+        function stopRecording() {
+            if (isRecording) {
+                // Stop both intervals
+                if (window.sendInterval) {
+                    clearInterval(window.sendInterval);
+                    window.sendInterval = null;
+                }
+                if (window.senderInterval) {
+                    clearInterval(window.senderInterval);
+                    window.senderInterval = null;
+                }
+                
+                // Stop Audio context
+                if (window.currentProcessor) {
+                    window.currentSource.disconnect();
+                    window.currentProcessor.disconnect();
+                    window.currentAudioContext.close();
+                }
+                
+                // Stop stream tracks
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
+                // Lock current caption when stopping
+                lockCurrentCaption();
+                
+                isRecording = false;
+                updateStatus('connected', 'Ready');
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                
+                recorder = null;
+                stream = null;
+            }
+        }
+        
+        function updateCurrentCaption(data) {
+            const box = document.getElementById('transcriptionBox');
+            
+            // Remove empty state
+            const emptyState = box.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            // Get or create current caption (simple span, no cards)
+            let currentCaption = box.querySelector('.current-caption');
+            
+            if (!currentCaption) {
+                currentCaption = document.createElement('div');
+                currentCaption.className = 'current-caption';
+                currentCaption.style.cssText = 'font-size: 18px; padding: 10px; color: #2196F3; min-height: 24px;';
+                box.appendChild(currentCaption);
+            }
+            
+            // Update text in real-time
+            currentCaption.innerHTML = data.text;
+        }
+        
+        function lockCurrentCaption() {
+            // Convert current caption to finalized
+            const current = document.getElementById('transcriptionBox').querySelector('.current-caption');
+            if (current) {
+                current.classList.remove('current-caption');
+                current.style.color = '#333';  // Change to black when locked
+            }
+        }
+        
+        function addTranscript(data) {
+            const box = document.getElementById('transcriptionBox');
+            
+            // Remove empty state
+            const emptyState = box.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            // Create transcript item
+            const item = document.createElement('div');
+            item.className = 'transcript-item';
+            item.innerHTML = `
+                <div class="transcript-text">${data.text}</div>
+                <div class="transcript-meta">
+                    Duration: ${data.duration.toFixed(2)}s | 
+                    Processing: ${data.processing_time.toFixed(2)}s | 
+                    RTF: ${data.rtf.toFixed(2)}x |
+                    ${new Date(data.timestamp).toLocaleTimeString()}
+                </div>
+            `;
+            
+            box.appendChild(item);
+            box.scrollTop = box.scrollHeight;
+            
+            // Update stats
+            transcriptCount++;
+            totalRtf += data.rtf;
+            totalDuration += data.duration;
+            
+            document.getElementById('transcriptCount').textContent = transcriptCount;
+            document.getElementById('avgRtf').textContent = (totalRtf / transcriptCount).toFixed(2) + 'x';
+            document.getElementById('totalDuration').textContent = totalDuration.toFixed(1) + 's';
+        }
+        
+        function clearTranscripts() {
+            const box = document.getElementById('transcriptionBox');
+            box.innerHTML = '<div class="empty-state"><p>Transcripts cleared. Start recording to add new ones...</p></div>';
+            
+            transcriptCount = 0;
+            totalRtf = 0;
+            totalDuration = 0;
+            
+            document.getElementById('transcriptCount').textContent = '0';
+            document.getElementById('avgRtf').textContent = '-';
+            document.getElementById('totalDuration').textContent = '0s';
+        }
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (isRecording) {
+                stopRecording();
+            }
+            if (isConnected) {
+                disconnect();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.venv
+__pycache__/
+*.pyc
+hypa-runpod
+hypa-runpod.pub
+server-2/wspr_small_ct2/*
