@@ -38,9 +38,9 @@ MODEL_PATH          = CT2_MODEL_PATH if USE_CONVERTED_MODEL else HF_MODEL_ID
 HOST                = "0.0.0.0"
 PORT                = 8765
 SAMPLE_RATE         = 16_000
-SILENCE_RMS         = 0.1         # below this → treat as silence
-MIN_AUDIO_SECS      = 0.3           # ignore chunks shorter than this
-MAX_WORKERS         = 10              # reduced - H200 is fast enough
+SILENCE_RMS         = 0.01         # below this → treat as silence
+MIN_AUDIO_SECS      = 0.3       
+MAX_WORKERS         = 1          
 
 # ── Model parameters ───────────────────────────────────────────────────────────
 TEMPERATURE         = 0.3           # 0.0 = greedy/deterministic (fastest)

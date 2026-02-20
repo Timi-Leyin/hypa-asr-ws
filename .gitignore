@@ -4,3 +4,5 @@ __pycache__/
 hypa-runpod
 hypa-runpod.pub
 server-2/wspr_small_ct2/*
+
+.env

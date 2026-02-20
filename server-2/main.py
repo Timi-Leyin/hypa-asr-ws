@@ -7,6 +7,14 @@ import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 
 
+
+#
+#  user 1 ->
+#  user 2->
+# usrer1 
+
+# 
+
 MODEL_ID = "hypaai/wspr_small_2025-11-11_12-12-17"
 BASE_MODEL_ID = "openai/whisper-small"
 
