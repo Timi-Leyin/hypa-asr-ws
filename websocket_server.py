@@ -13,9 +13,11 @@ import asyncio
 import io
 import json
 import logging
+import threading
 import wave
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from time import perf_counter
 from typing import Optional
 
@@ -36,7 +38,8 @@ CT2_MODEL_PATH      = "./wspr_small_ct2"
 HF_MODEL_ID         = "hypaai/wspr_small_2025-11-11_12-12-17"
 MODEL_PATH          = CT2_MODEL_PATH if USE_CONVERTED_MODEL else HF_MODEL_ID
 HOST                = "0.0.0.0"
-PORT                = 8765
+WS_PORT             = 8765
+HTTP_PORT           = 8766
 SAMPLE_RATE         = 16_000
 SILENCE_RMS         = 0.01         # below this → treat as silence
 MIN_AUDIO_SECS      = 0.3       
@@ -46,6 +49,48 @@ MAX_WORKERS         = 1
 TEMPERATURE         = 0.3           # 0.0 = greedy/deterministic (fastest)
 BEAM_SIZE           = 1             # 1 = greedy search (fastest), >1 = beam search
 REPETITION_PENALTY  = 1.0           # 1.0 = disabled (no overhead)
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+# ── HTTP Health Check ──────────────────────────────────────────────────────────
+
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    """Simple HTTP handler for /health endpoint."""
+
+    def do_GET(self) -> None:
+        if self.path == "/health":
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            response = json.dumps({
+                "status": "healthy",
+                "server": "transcription",
+                "model": MODEL_PATH,
+                "timestamp": _now(),
+            })
+            self.wfile.write(response.encode())
+        else:
+            self.send_response(404)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "not found"}).encode())
+
+    def log_message(self, format, *args) -> None:
+        """Suppress HTTP server logging."""
+        pass
+
+
+def start_http_health_server() -> None:
+    """Start HTTP health check server in background thread."""
+    http_server = HTTPServer((HOST, HTTP_PORT), HealthCheckHandler)
+    thread = threading.Thread(target=http_server.serve_forever, daemon=True)
+    thread.start()
+    log.info("HTTP health check server started on http://%s:%d/health", HOST, HTTP_PORT)
 
 
 # ── Audio decoding ─────────────────────────────────────────────────────────────
@@ -288,26 +333,24 @@ class TranscriptionServer:
 
     async def start(self) -> None:
         log.info("=" * 55)
-        log.info("  TRANSCRIPTION SERVER  ws://%s:%d", HOST, PORT)
+        log.info("  TRANSCRIPTION SERVER  ws://%s:%d", HOST, WS_PORT)
+        log.info("  HTTP Health Check   http://%s:%d/health", HOST, HTTP_PORT)
         log.info("  Model:  %s", MODEL_PATH)
         log.info("  Mode:   3 s chunks · no sliding window")
         log.info("=" * 55)
 
+        # Start HTTP health check server
+        start_http_health_server()
+
         async with websockets.serve(
             self.handle_client,
             HOST,
-            PORT,
+            WS_PORT,
             max_size=10 * 1024 * 1024,
             ping_interval=20,
             ping_timeout=10,
         ):
             await asyncio.Future()
-
-
-# ── Helpers ────────────────────────────────────────────────────────────────────
-
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
