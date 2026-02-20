@@ -8,6 +8,8 @@ python main_faster.py --audio ./test-2.mp3 --language en --benchmark
 python main.py --audio ./test-2.mp3 --language en --temperature 0.6 --top-p 0.9 --top-k 10 --benchmark
 
 
+ python3 handler.py --test_input '{"input": {"prompt": "Test prompt"}}'
+
 python main_sta.py --audio ./test-2.mp3 --language en --temperature 0.6 --top-p 0.9 --top-k 10 --task translate 
 ### Flags
 --language en (or yo, etc.)
