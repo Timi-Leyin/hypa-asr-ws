@@ -85,7 +85,6 @@ def transcribe_base64_audio(audio_b64: str, language: str = "en") -> Optional[st
         "language": language,
         "task": "transcribe",
     }
-
     with _TORCH.no_grad():
         predicted_ids = _MODEL.generate(input_features, **gen_kwargs)
 
