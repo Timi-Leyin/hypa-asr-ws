@@ -8,7 +8,7 @@ interface StatusResponse {
 }
 (async () => {
     const CONFIG = {
-        API_KEY: "REMOVED",
+        API_KEY: "",
         WORK_ID: "",
         REQ_BASE_URL: "https://api.runpod.ai/v2/0zqnqtriady1my"
     }
