@@ -9,6 +9,7 @@ interface StatusResponse {
 (async () => {
     const CONFIG = {
         WORK_ID: "",
+        KEY: "",
         REQ_BASE_URL: "https://api.runpod.ai/v2/0zqnqtriady1my"
     }
     const start = Date.now();
@@ -20,7 +21,7 @@ interface StatusResponse {
     },
         {
             headers: {
-                Authorization: `Bearer ${CONFIG.API_KEY}`,
+                Authorization: `Bearer ${CONFIG.KEY}`,
             }
         }
     );
@@ -31,7 +32,7 @@ interface StatusResponse {
     while (true && CONFIG.WORK_ID) {
         const statusResponse = await axios.get<StatusResponse>(`${CONFIG.REQ_BASE_URL}/status/${CONFIG.WORK_ID}`, {
             headers: {
-                Authorization: `Bearer ${CONFIG.API_KEY}`,
+                Authorization: `Bearer ${CONFIG.KEY}`,
             }
         });
         const status = statusResponse.data;
