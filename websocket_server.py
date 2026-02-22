@@ -41,14 +41,14 @@ HOST                = "0.0.0.0"
 WS_PORT             = 8765
 HTTP_PORT           = 8766
 SAMPLE_RATE         = 16_000
-SILENCE_RMS         = 0.01         # below this → treat as silence
-MIN_AUDIO_SECS      = 0.3       
+SILENCE_RMS         = 0.01         # <val → treat as silence
+MIN_AUDIO_SECS      = 0.1   
 MAX_WORKERS         = 1          
 
 # ── Model parameters ───────────────────────────────────────────────────────────
-TEMPERATURE         = 0.3           # 0.0 = greedy/deterministic (fastest)
-BEAM_SIZE           = 1             # 1 = greedy search (fastest), >1 = beam search
-REPETITION_PENALTY  = 1.0           # 1.0 = disabled (no overhead)
+TEMPERATURE         = 0.3       
+BEAM_SIZE           = 1           
+REPETITION_PENALTY  = 1.0       
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────

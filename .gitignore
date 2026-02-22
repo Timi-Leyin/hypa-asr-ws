@@ -6,3 +6,4 @@ hypa-runpod.pub
 wspr_small_ct2/*
 
 .env
+node_modules
