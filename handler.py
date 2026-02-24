@@ -27,7 +27,11 @@ def _handle_signal(signum, frame) -> None:
     _stop_event.set()
 
 
-async def _run_ws_server(server: TranscriptionServer, public_ip: str, port: int) -> None:
+WS_HOST = "0.0.0.0"
+WS_PORT = 8765
+
+
+async def _run_ws_server(server: TranscriptionServer, public_ip: str, public_port: int) -> None:
     """Start the WebSocket server and run until _stop_event is set."""
     stop_future: asyncio.Future = asyncio.get_running_loop().create_future()
 
@@ -40,13 +44,16 @@ async def _run_ws_server(server: TranscriptionServer, public_ip: str, port: int)
 
     async with websockets.serve(
         server.handle_client,
-        public_ip,
-        port,
+        WS_HOST,
+        WS_PORT,
         max_size=10 * 1024 * 1024,
         ping_interval=20,
         ping_timeout=10,
     ):
-        log.info("WebSocket server listening on ws://0.0.0.0:%d (public: %s:%d)", port, public_ip, port)
+        log.info(
+            "WebSocket server listening on ws://%s:%d (public: %s:%d)",
+            WS_HOST, WS_PORT, public_ip, public_port,
+        )
         watcher = asyncio.ensure_future(_watch_stop())
         try:
             await stop_future          # blocks until shutdown requested
@@ -56,12 +63,12 @@ async def _run_ws_server(server: TranscriptionServer, public_ip: str, port: int)
     log.info("WebSocket server stopped.")
 
 
-def _start_server_thread(server: TranscriptionServer, public_ip: str, port: int) -> None:
+def _start_server_thread(server: TranscriptionServer, public_ip: str, public_port: int) -> None:
     """Run the asyncio event loop in a dedicated thread."""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(_run_ws_server(server, public_ip, port))
+        loop.run_until_complete(_run_ws_server(server, public_ip, public_port))
     finally:
         loop.close()
 
@@ -72,33 +79,32 @@ def handler(event):
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT,  _handle_signal)
 
-    public_ip = os.environ.get("RUNPOD_PUBLIC_IP", "localhost")
-    tcp_port  = int(os.environ.get("RUNPOD_TCP_PORT_8765", "8765"))
-    bind_host = "0.0.0.0"
+    public_ip   = os.environ.get("RUNPOD_PUBLIC_IP", "localhost")
+    public_port = int(os.environ.get("RUNPOD_TCP_PORT_8765", "8765"))
 
     runpod.serverless.progress_update(
         event,
-        f"Loading model: {MODEL_PATH} | Public IP: {public_ip}, TCP Port: {tcp_port}",
+        f"Loading model: {MODEL_PATH} | Public IP: {public_ip}, TCP Port: {public_port}",
     )
 
     server = TranscriptionServer(shutdown_event=_stop_event)
 
     runpod.serverless.progress_update(
         event,
-        f"Model ready. WebSocket server starting on {public_ip}:{tcp_port}",
+        f"Model ready. WebSocket server starting on {WS_HOST}:{WS_PORT} (public: {public_ip}:{public_port})",
     )
 
     ws_thread = threading.Thread(
-        target=_start_server_thread, args=(server, bind_host, tcp_port), daemon=True, name="ws-server",
+        target=_start_server_thread, args=(server, public_ip, public_port), daemon=True, name="ws-server",
     )
     ws_thread.start()
     ws_thread.join()  # blocks until _stop_event fires and the loop exits
 
     log.info("Handler returning cleanly.")
     return {
-        "message":   "Transcription server stopped",
-        "public_ip": public_ip,
-        "tcp_port":  tcp_port,
+        "message":     "Transcription server stopped",
+        "public_ip":   public_ip,
+        "public_port": public_port,
     }
 
 
