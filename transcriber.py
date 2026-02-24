@@ -31,6 +31,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("transcriber")
 
+
 # ── Config ─────────────────────────────────────────────────────────────────────
 USE_CONVERTED_MODEL = False          # True → faster-whisper (CT2), False → HuggingFace transformers
 CT2_MODEL_PATH      = "./wspr_small_ct2"
