@@ -58,11 +58,13 @@ def handler(event):
 
     public_ip   = os.environ.get("RUNPOD_PUBLIC_IP", "localhost")
     public_port = int(os.environ.get("RUNPOD_TCP_PORT_8765", "8765"))
-
+    public_http_port = int(os.environ.get("RUNPOD_HTTP_PORT_8766", "8766"))
+    print(f"Handler started | Public IP: {public_ip}, TCP Port: {public_port}, HTTP Port: {public_http_port}")
     runpod.serverless.progress_update(
         event,
         f"Loading model: {MODEL_PATH} | Public IP: {public_ip}, TCP Port: {public_port}",
     )
+
 
     server = TranscriptionServer(shutdown_event=_stop_event)
 
