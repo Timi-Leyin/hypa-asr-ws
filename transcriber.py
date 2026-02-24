@@ -34,6 +34,7 @@ log = logging.getLogger("transcriber")
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 USE_CONVERTED_MODEL = False          # True → faster-whisper (CT2), False → HuggingFace transformers
+USE_TORCH_COMPILE   = False          # True → torch.compile (20-40% faster after ~60s cold compile)
 CT2_MODEL_PATH      = "./wspr_small_ct2"
 HF_MODEL_ID         = "hypaai/wspr_small_2025-11-11_12-12-17"
 MODEL_PATH          = CT2_MODEL_PATH if USE_CONVERTED_MODEL else HF_MODEL_ID
@@ -43,7 +44,7 @@ HTTP_PORT           = 8766
 SAMPLE_RATE         = 16_000
 SILENCE_RMS         = 0.01          # < val → treat as silence
 MIN_AUDIO_SECS      = 0.3
-MAX_WORKERS         = 3
+MAX_WORKERS         = 3             # overridden to 1 on GPU (see TranscriptionServer.__init__)
 
 # ── Model parameters ───────────────────────────────────────────────────────────
 TEMPERATURE         = 0.3
@@ -122,10 +123,18 @@ class TranscriptionServer:
             self._processor = WhisperProcessor.from_pretrained(HF_MODEL_ID)
             self._hf_model  = WhisperForConditionalGeneration.from_pretrained(HF_MODEL_ID)
             self._hf_model.to(self._device)
+            if self._device == "cuda":
+                self._hf_model = self._hf_model.half()  # float16: halves memory bandwidth
             self._hf_model.eval()
+            if USE_TORCH_COMPILE and hasattr(torch, "compile"):
+                log.info("Compiling model with torch.compile (first inference will be slow) …")
+                self._hf_model = torch.compile(self._hf_model)
 
+        # GPU can only run one inference efficiently at a time; a single worker
+        # queues requests cleanly and avoids thread-contention overhead.
+        workers = 1 if self._device in ("cuda", "mps") else MAX_WORKERS
         self._executor = ThreadPoolExecutor(
-            max_workers=MAX_WORKERS, thread_name_prefix="whisper",
+            max_workers=workers, thread_name_prefix="whisper",
         )
         self._connections: set = set()
         log.info("Model ready.")
@@ -171,14 +180,13 @@ class TranscriptionServer:
             "task":               "transcribe",
         }
 
-        with self._torch.no_grad():
-            predicted_ids = self._hf_model.generate(
-                input_features, **gen_kwargs,
-            )
+        # inference_mode disables both gradients and view tracking (faster than no_grad).
+        # autocast runs matmuls in float16 on CUDA for a significant compute win.
+        with self._torch.inference_mode(), \
+             self._torch.autocast(self._device, enabled=self._device == "cuda"):
+            predicted_ids = self._hf_model.generate(input_features, **gen_kwargs)
 
-        text = self._processor.batch_decode(
-            predicted_ids, skip_special_tokens=True,
-        )
+        text = self._processor.batch_decode(predicted_ids, skip_special_tokens=True)
         result = " ".join(t.strip() for t in text if t.strip())
         return result or None
 
