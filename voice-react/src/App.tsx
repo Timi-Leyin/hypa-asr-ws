@@ -77,7 +77,7 @@ function App() {
   }, []);
 
   const { connect, disconnect, sendMessage, status } = useWs({
-    url: "ws://localhost:8765",
+    url: "ws://213.173.102.133:19793",
     onMessage: onWsMessage,
   });
 
@@ -122,15 +122,35 @@ function App() {
     stopStreaming();
     disconnect();
   }, [disconnect, stopStreaming]);
-  return <ElevenLabsStreaming />;
+  // return <ElevenLabsStreaming />;
   return (
     <div>
       <div>WebSocket: {status}</div>
       <div>
         Sent chunks: {sentCount} | Received messages: {receivedCount}
       </div>
-      <div>Last message: {lastMessage || "-"}</div>
+      <div>Last message: {JSON.stringify(lastMessage) || "-"}</div>
       <button onClick={connect}>Connect WS</button>
+
+      <button
+        onClick={() => {
+          sendMessage({
+            type: "ping",
+            event_id: Math.floor(Math.random() * 1000000),
+          });
+        }}
+      >
+        Ping
+      </button>
+
+      <button
+        onClick={() => {
+          sendMessage("shutdown");
+        }}
+      >
+        SHUTDOWN
+      </button>
+
       <button onClick={disconnect}>Disconnect WS</button>
       <button onClick={startAll} disabled={isStreaming}>
         Start Recording

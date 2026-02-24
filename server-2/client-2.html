@@ -14,6 +14,7 @@
     --border:    #222222;
     --accent:    #f9f9f9;
     --accent2:   #ff4747;
+    --accent3:   #4af0a0;
     --text:      #f0f0f0;
     --muted:     #555555;
     --font-ui:   'JetBrains Mono', monospace;
@@ -31,10 +32,10 @@
   /* ── Layout ── */
   .shell {
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto 1fr auto auto auto;
     height: 100vh;
     padding: 24px;
-    gap: 16px;
+    gap: 12px;
   }
 
   /* ── Header ── */
@@ -52,6 +53,22 @@
     color: var(--accent);
   }
 
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .model-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .status-pill {
     display: flex;
     align-items: center;
@@ -63,7 +80,7 @@
     transition: color 0.3s;
   }
 
-  .status-pill.live { color: var(--accent); }
+  .status-pill.live  { color: var(--accent); }
   .status-pill.error { color: var(--accent2); }
 
   .dot {
@@ -92,7 +109,6 @@
     background: var(--surface);
   }
 
-  /* scanline atmosphere */
   .stage::before {
     content: '';
     position: absolute;
@@ -107,7 +123,6 @@
     pointer-events: none;
   }
 
-  /* corner marks */
   .stage::after {
     content: '';
     position: absolute;
@@ -127,7 +142,6 @@
     opacity: 0.5;
   }
 
-  /* history lines */
   .history {
     display: flex;
     flex-direction: column;
@@ -150,7 +164,6 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* live line */
   .live-line {
     font-size: clamp(1.3rem, 2.5vw, 1.8rem);
     line-height: 1.4;
@@ -181,18 +194,56 @@
     letter-spacing: 0.06em;
   }
 
-  /* ── Controls ── */
+  /* ── Event log ── */
+  .event-log {
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--surface);
+    padding: 8px 14px;
+    height: 72px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .event-log::-webkit-scrollbar { width: 4px; }
+  .event-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-entry {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+    animation: fadein 0.2s ease;
+  }
+
+  .log-entry .log-time { color: #333; flex-shrink: 0; }
+  .log-entry.ok   { color: var(--accent3); }
+  .log-entry.warn { color: #f0a050; }
+  .log-entry.err  { color: var(--accent2); }
+
+  /* ── Controls row 1 ── */
   footer {
     display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ctrl-row {
+    display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   .btn {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 20px;
+    padding: 10px 18px;
     border: 1px solid var(--border);
     border-radius: 3px;
     background: transparent;
@@ -203,9 +254,11 @@
     text-transform: uppercase;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
   }
 
-  .btn:hover { background: var(--border); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+  .btn:hover:not(:disabled) { background: var(--border); }
 
   .btn.primary {
     background: var(--accent);
@@ -213,14 +266,19 @@
     color: #000;
     font-weight: 700;
   }
-  .btn.primary:hover { background: #d4eb3a; border-color: #d4eb3a; }
-  .btn.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.primary:hover:not(:disabled) { background: #d4eb3a; border-color: #d4eb3a; }
 
   .btn.danger {
     border-color: var(--accent2);
     color: var(--accent2);
   }
-  .btn.danger:hover { background: rgba(255,71,71,0.08); }
+  .btn.danger:hover:not(:disabled) { background: rgba(255,71,71,0.08); }
+
+  .btn.green {
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+  .btn.green:hover:not(:disabled) { background: rgba(74,240,160,0.08); }
 
   .meta {
     margin-left: auto;
@@ -229,16 +287,16 @@
     letter-spacing: 0.08em;
     text-align: right;
     line-height: 1.8;
+    white-space: nowrap;
   }
 
   /* ── RTF meter ── */
   .rtf-bar-wrap {
-    width: 100px;
+    width: 80px;
     height: 3px;
     background: var(--border);
     border-radius: 2px;
     overflow: hidden;
-    margin-left: auto;
   }
   .rtf-bar {
     height: 100%;
@@ -249,8 +307,8 @@
   }
   .rtf-bar.slow { background: var(--accent2); }
 
-  /* ── WS URL input ── */
-  .ws-input {
+  /* ── WS URL input / lang select ── */
+  .ws-input, .lang-select {
     padding: 10px 14px;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -258,11 +316,52 @@
     color: var(--text);
     font-family: var(--font-ui);
     font-size: 0.72rem;
-    width: 220px;
     outline: none;
     transition: border-color 0.2s;
   }
-  .ws-input:focus { border-color: var(--accent); }
+  .ws-input:focus, .lang-select:focus { border-color: var(--accent); }
+  .ws-input { width: 220px; }
+
+  /* ── Inference param inputs ── */
+  .param-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .param-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+
+  .param-input {
+    width: 62px;
+    padding: 8px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .param-input::-webkit-outer-spin-button,
+  .param-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .param-input:focus { border-color: var(--accent); }
+  .param-input:disabled { opacity: 0.35; }
+
+  .divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -271,9 +370,12 @@
   <!-- Header -->
   <header>
     <span class="logo">HYPAAI//</span>
-    <div class="status-pill" id="statusPill">
-      <span class="dot"></span>
-      <span id="statusText">IDLE</span>
+    <div class="header-right">
+      <span class="model-tag" id="modelTag">—</span>
+      <div class="status-pill" id="statusPill">
+        <span class="dot"></span>
+        <span id="statusText">IDLE</span>
+      </div>
     </div>
   </header>
 
@@ -286,15 +388,49 @@
     </div>
   </div>
 
+  <!-- Event log -->
+  <div class="event-log" id="eventLog"></div>
+
   <!-- Footer -->
   <footer>
-    <input class="ws-input" id="wsUrl" value="ws://localhost:8765" placeholder="ws://host:port" />
-    <button class="btn primary" id="startBtn">▶ Start</button>
-    <button class="btn danger" id="stopBtn" style="display:none">■ Stop</button>
-    <button class="btn" id="clearBtn">✕ Clear</button>
-    <div class="meta" id="meta">—</div>
-    <div class="rtf-bar-wrap" title="Real-time factor (green = fast, red = slow)">
-      <div class="rtf-bar" id="rtfBar"></div>
+    <!-- Row 1: connection + recording controls -->
+    <div class="ctrl-row">
+      <input class="ws-input" id="wsUrl" value="ws://localhost:8765" placeholder="ws://host:port" />
+      <button class="btn primary" id="startBtn">▶ Start</button>
+      <button class="btn danger"  id="stopBtn"  style="display:none">■ Stop</button>
+      <button class="btn"         id="clearBtn">✕ Clear</button>
+      <div class="meta" id="meta">—</div>
+      <div class="rtf-bar-wrap" title="Real-time factor">
+        <div class="rtf-bar" id="rtfBar"></div>
+      </div>
+    </div>
+
+    <!-- Row 2: inference config + server controls -->
+    <div class="ctrl-row">
+      <div class="param-group">
+        <span class="param-label">Temp</span>
+        <input class="param-input" id="cfgTemperature"        type="number" min="0" max="1"   step="0.05" value="0.3"  disabled />
+      </div>
+      <div class="param-group">
+        <span class="param-label">Beam</span>
+        <input class="param-input" id="cfgBeamSize"           type="number" min="1" max="8"   step="1"    value="1"    disabled />
+      </div>
+      <div class="param-group">
+        <span class="param-label">Rep.Pen</span>
+        <input class="param-input" id="cfgRepetitionPenalty"  type="number" min="1" max="2"   step="0.05" value="1.0"  disabled />
+      </div>
+      <div class="param-group">
+        <span class="param-label">Top-P</span>
+        <input class="param-input" id="cfgTopP"               type="number" min="0" max="1"   step="0.05" value="0.9"  disabled />
+      </div>
+      <div class="param-group">
+        <span class="param-label">No-Speech</span>
+        <input class="param-input" id="cfgNoSpeech"           type="number" min="0" max="1"   step="0.05" value="0.6"  disabled />
+      </div>
+      <button class="btn" id="configBtn" disabled>⚙ Apply</button>
+      <div class="divider"></div>
+      <button class="btn green"  id="pingBtn"     disabled>◎ Ping</button>
+      <button class="btn danger" id="shutdownBtn" disabled>⏻ Shutdown Server</button>
     </div>
   </footer>
 
@@ -302,25 +438,29 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────────────────────────
-const CHUNK_SECS      = 1.5;     // accumulate N seconds then send
+const CHUNK_SECS      = 1.5;
 const SAMPLE_RATE     = 16000;
-const SILENCE_COMMIT  = 2000;    // ms of no new caption → commit line
+const SILENCE_COMMIT  = 2000;
 
 // ── State ───────────────────────────────────────────────────────────────────
 let ws               = null;
 let mediaStream      = null;
 let audioCtx         = null;
 let processor        = null;
-let audioChunks      = [];       // Array<Float32Array> – grows, drained on send
+let audioChunks      = [];
 let sendTimer        = null;
 let silenceTimer     = null;
 let currentText      = '';
-let awaitingResponse = false;    // backpressure flag
+let awaitingResponse = false;
+let pingTimestamp    = null;
 
 // ── DOM ─────────────────────────────────────────────────────────────────────
 const startBtn    = document.getElementById('startBtn');
 const stopBtn     = document.getElementById('stopBtn');
 const clearBtn    = document.getElementById('clearBtn');
+const configBtn   = document.getElementById('configBtn');
+const pingBtn     = document.getElementById('pingBtn');
+const shutdownBtn = document.getElementById('shutdownBtn');
 const liveLine    = document.getElementById('liveLine');
 const history     = document.getElementById('history');
 const placeholder = document.getElementById('placeholder');
@@ -329,6 +469,36 @@ const statusText  = document.getElementById('statusText');
 const metaEl      = document.getElementById('meta');
 const rtfBar      = document.getElementById('rtfBar');
 const wsUrlInput  = document.getElementById('wsUrl');
+const modelTag    = document.getElementById('modelTag');
+const eventLog    = document.getElementById('eventLog');
+
+// inference param inputs
+const cfgTemperature       = document.getElementById('cfgTemperature');
+const cfgBeamSize          = document.getElementById('cfgBeamSize');
+const cfgRepetitionPenalty = document.getElementById('cfgRepetitionPenalty');
+const cfgTopP              = document.getElementById('cfgTopP');
+const cfgNoSpeech          = document.getElementById('cfgNoSpeech');
+const paramInputs = [cfgTemperature, cfgBeamSize, cfgRepetitionPenalty, cfgTopP, cfgNoSpeech];
+
+function syncParamInputs(cfg) {
+  if (cfg.temperature         != null) cfgTemperature.value       = cfg.temperature;
+  if (cfg.beam_size           != null) cfgBeamSize.value          = cfg.beam_size;
+  if (cfg.repetition_penalty  != null) cfgRepetitionPenalty.value = cfg.repetition_penalty;
+  if (cfg.top_p               != null) cfgTopP.value              = cfg.top_p;
+  if (cfg.no_speech_threshold != null) cfgNoSpeech.value          = cfg.no_speech_threshold;
+}
+
+// ── Event log ────────────────────────────────────────────────────────────────
+function logEvent(text, level = '') {
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${level}`;
+  const time = new Date().toISOString().slice(11, 23);
+  entry.innerHTML = `<span class="log-time">${time}</span><span>${escHtml(text)}</span>`;
+  eventLog.appendChild(entry);
+  eventLog.scrollTop = eventLog.scrollHeight;
+  // keep at most 100 entries
+  while (eventLog.children.length > 100) eventLog.removeChild(eventLog.firstChild);
+}
 
 // ── Accumulation buffer ──────────────────────────────────────────────────────
 function appendSamples(samples) {
@@ -360,12 +530,12 @@ function encodeWAV(samples) {
   writeStr(8,  'WAVE');
   writeStr(12, 'fmt ');
   writeU32(16, 16);
-  writeU16(20, 1);               // PCM
-  writeU16(22, 1);               // mono
+  writeU16(20, 1);
+  writeU16(22, 1);
   writeU32(24, SAMPLE_RATE);
   writeU32(28, SAMPLE_RATE * 2);
-  writeU16(32, 2);               // block align
-  writeU16(34, 16);              // bits/sample
+  writeU16(32, 2);
+  writeU16(34, 16);
   writeStr(36, 'data');
   writeU32(40, numSamples * 2);
 
@@ -383,29 +553,75 @@ function connectWS(url) {
   ws = new WebSocket(url);
   ws.binaryType = 'arraybuffer';
 
-  ws.onopen = () => setStatus('live', 'LIVE');
+  ws.onopen = () => {
+    setStatus('live', 'LIVE');
+    setServerControls(true);
+    logEvent(`Connected to ${url}`, 'ok');
+  };
 
   ws.onmessage = (e) => {
     if (typeof e.data !== 'string') return;
     let msg;
     try { msg = JSON.parse(e.data); } catch { return; }
 
-    // Any response from server clears the backpressure flag
-    if (msg.type === 'caption' || msg.type === 'silence' || msg.type === 'busy') {
-      awaitingResponse = false;
-    }
+    switch (msg.type) {
 
-    if (msg.type === 'caption' && msg.text) {
-      currentText = msg.text;
-      renderLive(currentText);
-      updateMeta(msg);
-      resetSilenceTimer();
+      case 'connected':
+        modelTag.textContent = msg.model ?? '—';
+        if (msg.config) syncParamInputs(msg.config);
+        logEvent(`Server ready · model: ${msg.model ?? '—'}`, 'ok');
+        break;
+
+      case 'caption':
+        awaitingResponse = false;
+        currentText = msg.text;
+        renderLive(currentText);
+        updateMeta(msg);
+        resetSilenceTimer();
+        break;
+
+      case 'silence':
+      case 'busy':
+        awaitingResponse = false;
+        break;
+
+      case 'config_updated':
+        if (msg.config) syncParamInputs(msg.config);
+        logEvent(`Config updated · ${JSON.stringify(msg.config)}`, 'ok');
+        break;
+
+      case 'pong': {
+        const rtt = pingTimestamp !== null ? Date.now() - pingTimestamp : null;
+        pingTimestamp = null;
+        const rttStr = rtt !== null ? ` · RTT ${rtt}ms` : '';
+        logEvent(`Pong ← server ts: ${msg.timestamp}${rttStr}`, 'ok');
+        break;
+      }
+
+      case 'shutdown_ack':
+        logEvent(`Shutdown acknowledged · ${msg.timestamp}`, 'warn');
+        // give the server a moment to close, then tear down locally
+        setTimeout(() => stopRecording(), 300);
+        break;
+
+      case 'buffer_cleared':
+        logEvent('Buffer cleared');
+        break;
+
+      default:
+        logEvent(`← ${JSON.stringify(msg)}`);
     }
   };
 
-  ws.onerror = () => setStatus('error', 'ERROR');
-  ws.onclose = () => {
+  ws.onerror = () => {
+    setStatus('error', 'ERROR');
+    logEvent('WebSocket error', 'err');
+  };
+
+  ws.onclose = (e) => {
     setStatus('', 'IDLE');
+    setServerControls(false);
+    logEvent(`Disconnected (code ${e.code})`, e.wasClean ? '' : 'warn');
     stopRecording();
   };
 }
@@ -431,13 +647,12 @@ async function startRecording() {
   processor.connect(audioCtx.destination);
   audioChunks = [];
 
-  // Every CHUNK_SECS: drain buffer, encode WAV, send
   sendTimer = setInterval(() => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (awaitingResponse) return;           // backpressure – wait for server
+    if (awaitingResponse) return;
 
     const samples = drainBuffer();
-    if (samples.length < SAMPLE_RATE * 0.5) return;  // too short, skip
+    if (samples.length < SAMPLE_RATE * 0.5) return;
 
     awaitingResponse = true;
     ws.send(encodeWAV(samples));
@@ -459,6 +674,15 @@ function stopRecording() {
   startBtn.style.display = '';
   stopBtn.style.display  = 'none';
   wsUrlInput.disabled    = false;
+  setServerControls(false);
+}
+
+// ── Server controls enable/disable ───────────────────────────────────────────
+function setServerControls(enabled) {
+  paramInputs.forEach(el => el.disabled = !enabled);
+  configBtn.disabled   = !enabled;
+  pingBtn.disabled     = !enabled;
+  shutdownBtn.disabled = !enabled;
 }
 
 // ── Silence → commit line ────────────────────────────────────────────────────
@@ -507,6 +731,12 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function sendJSON(payload) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(payload));
+  }
+}
+
 // ── Button handlers ──────────────────────────────────────────────────────────
 startBtn.addEventListener('click', async () => {
   const url = wsUrlInput.value.trim() || 'ws://localhost:8765';
@@ -521,7 +751,7 @@ startBtn.addEventListener('click', async () => {
   } catch (err) {
     setStatus('error', 'MIC ERROR');
     stopRecording();
-    alert('Microphone access denied or unavailable.');
+    logEvent('Microphone access denied or unavailable', 'err');
   }
 });
 
@@ -536,9 +766,33 @@ clearBtn.addEventListener('click', () => {
   renderLive('');
   audioChunks = [];
   awaitingResponse = false;
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'clear_buffer' }));
-  }
+  sendJSON({ type: 'clear_buffer' });
+});
+
+configBtn.addEventListener('click', () => {
+  const payload = {
+    type:                 'config',
+    temperature:          parseFloat(cfgTemperature.value),
+    beam_size:            parseInt(cfgBeamSize.value, 10),
+    repetition_penalty:   parseFloat(cfgRepetitionPenalty.value),
+    top_p:                parseFloat(cfgTopP.value),
+    no_speech_threshold:  parseFloat(cfgNoSpeech.value),
+  };
+  sendJSON(payload);
+  logEvent(`→ config temp=${payload.temperature} beam=${payload.beam_size} rep=${payload.repetition_penalty} top_p=${payload.top_p} no_speech=${payload.no_speech_threshold}`);
+});
+
+pingBtn.addEventListener('click', () => {
+  pingTimestamp = Date.now();
+  sendJSON({ type: 'ping' });
+  logEvent('→ ping');
+});
+
+shutdownBtn.addEventListener('click', () => {
+  if (!confirm('Send shutdown to the server?')) return;
+  logEvent('→ shutdown', 'warn');
+  sendJSON({ type: 'shutdown' });
+  shutdownBtn.disabled = true;
 });
 </script>
 </body>
