@@ -46,7 +46,7 @@ async def _run_ws_server(server: TranscriptionServer, public_ip: str, port: int)
         ping_interval=20,
         ping_timeout=10,
     ):
-        log.info("WebSocket server listening on ws://%s:%d", public_ip, port)
+        log.info("WebSocket server listening on ws://0.0.0.0:%d (public: %s:%d)", port, public_ip, port)
         watcher = asyncio.ensure_future(_watch_stop())
         try:
             await stop_future          # blocks until shutdown requested
@@ -74,6 +74,7 @@ def handler(event):
 
     public_ip = os.environ.get("RUNPOD_PUBLIC_IP", "localhost")
     tcp_port  = int(os.environ.get("RUNPOD_TCP_PORT_8765", "8765"))
+    bind_host = "0.0.0.0"
 
     runpod.serverless.progress_update(
         event,
@@ -88,7 +89,7 @@ def handler(event):
     )
 
     ws_thread = threading.Thread(
-        target=_start_server_thread, args=(server, public_ip, tcp_port), daemon=True, name="ws-server",
+        target=_start_server_thread, args=(server, bind_host, tcp_port), daemon=True, name="ws-server",
     )
     ws_thread.start()
     ws_thread.join()  # blocks until _stop_event fires and the loop exits
