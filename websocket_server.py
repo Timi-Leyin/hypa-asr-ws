@@ -119,7 +119,6 @@ def decode_wav(raw: bytes, target_sr: int = SAMPLE_RATE) -> np.ndarray:
 # ── Transcription server ───────────────────────────────────────────────────────
 
 class TranscriptionServer:
-
     def __init__(self):
         self._use_ct2 = USE_CONVERTED_MODEL
         log.info("Loading model from %s …", MODEL_PATH)
@@ -365,3 +364,6 @@ if __name__ == "__main__":
         asyncio.run(_main())
     except KeyboardInterrupt:
         log.info("Server stopped.")
+    except Exception as e:
+        log.critical("Fatal error – shutting down: %s", e, exc_info=True)
+        raise SystemExit(1)
