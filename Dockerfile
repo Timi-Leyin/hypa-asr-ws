@@ -29,5 +29,5 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY handler.py .
-
+COPY transcriber.py .
 CMD [ "python", "-u", "handler.py" ]
