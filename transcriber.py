@@ -21,7 +21,7 @@ import numpy as np
 try:
     import websockets
 except ImportError:
-    websockets = None  # handled at runtime
+    websockets = None 
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 logging.basicConfig(
