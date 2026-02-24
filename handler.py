@@ -61,12 +61,12 @@ def handler(event):
 
     runpod.serverless.progress_update(
         event,
-        f"Loading model: {MODEL_PATH} | Public: {public_ip}:{public_port}",
+        f"Loading model: {MODEL_PATH} | Public IP: {public_ip}, TCP Port: {public_port}",
     )
 
     server = TranscriptionServer(shutdown_event=_stop_event)
 
-    runpod.serverless.progress_update(event, f"Model ready. Starting WebSocket server on {WS_HOST}:{WS_PORT}")
+    runpod.serverless.progress_update(event, f"Model ready | Public IP: {public_ip}, TCP Port: {public_port}")
     log.info("Public endpoint: %s:%d", public_ip, public_port)
 
     ws_thread = threading.Thread(
