@@ -50,6 +50,7 @@ def _start_server_thread(server: TranscriptionServer) -> None:
         loop.close()
 
 
+
 def handler(event):
     _stop_event.clear()
     signal.signal(signal.SIGTERM, _handle_signal)

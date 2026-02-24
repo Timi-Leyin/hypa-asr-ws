@@ -29,6 +29,7 @@ interface StatusResponse {
     CONFIG.WORK_ID = statusID;
     console.log("STATUS ID", statusID)
 
+    
     while (true && CONFIG.WORK_ID) {
         const statusResponse = await axios.get<StatusResponse>(`${CONFIG.REQ_BASE_URL}/status/${CONFIG.WORK_ID}`, {
             headers: {
