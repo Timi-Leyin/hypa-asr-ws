@@ -12,6 +12,7 @@ import threading
 import runpod
 import websockets
 
+
 from transcriber import TranscriptionServer, MODEL_PATH, log
 
 WS_HOST = "0.0.0.0"
